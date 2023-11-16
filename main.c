@@ -35,7 +35,7 @@ typedef enum{
         OPTION_4,
         MENU_SIZE
 } MENU_Item;
-
+MENU_Item current_item = PHOTO_GALLERY;
 // #########################################################
 // ####       PROGRAM START                             ####     
 // #########################################################
@@ -45,9 +45,17 @@ typedef enum{
 
 // prototype functions
 void inputController(void const *argument);
+void photoGalleryController(void const *argument);
 void menuController();
 
 // mutex
+	// #########################################################
+	// #                  semaphore creation                   #
+	// #########################################################
+	osSemaphoreDef(running_semaphore);
+	osSemaphoreId(running_semaphoreID);
+	
+
 
 
 // #########################################################
@@ -71,13 +79,6 @@ osThreadDef(photoGalleryController,osPriorityNormal, 1, 0);
 // #########################################################
 
 int main (void) {
-    // #########################################################
-    // #                  semaphore creation                   #
-    // #########################################################
-    osSemaphoreDef(running_semaphore);
-    osSemaphoreId(running_semaphoreID);
-    running_semaphoreID = osSemaphoreCreate(osSemaphore(running_semaphore), 0);
-
 
 
     // #########################################################
@@ -91,6 +92,8 @@ int main (void) {
     osMutexId(running_mutexID);
     running_mutexID = osMutexCreate(osMutex(running_mutex));
     
+	
+	running_semaphoreID = osSemaphoreCreate(osSemaphore(running_semaphore), 0);
     
 
 
@@ -98,7 +101,7 @@ int main (void) {
     // #                    initialization                     #
     // #########################################################
     #ifdef __use_LCD
-        MENU_Item current_item = PHOTO_GALLERY;
+        
         KBD_Init();			/* KBD initialization */
         GLCD_Init();        /* Initialize graphical LCD (if enabled */
         MAIN_MENU(1);       //instantiate main menu
