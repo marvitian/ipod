@@ -4,6 +4,8 @@
 
 #define osObjectsPublic                     // define objects in main module
 
+#include "cube.h"
+#include "menu.c"
 #include <stdlib.h>
 #include "cmsis_os.h"
 #include <stdbool.h>
@@ -93,7 +95,7 @@ int main (void) {
     running_mutexID = osMutexCreate(osMutex(running_mutex));
     
 	
-	running_semaphoreID = osSemaphoreCreate(osSemaphore(running_semaphore), 0);
+	running_semaphoreID = osSemaphoreCreate(osSemaphore(running_semaphore), 1);
     
 
 
@@ -116,10 +118,7 @@ int main (void) {
     osKernelStart();
 	
     
-    while(1){
-    // do nothing  
-    }
-		
+	
 }
 
 
@@ -137,12 +136,16 @@ int InputBufferIndex = 0;
 
 // input thread
 void inputController(void const *argument){
-    while(1)
+	while(0){
+		GLCD_Bitmap(0, 0, 240, 240, GIMP_IMAGE_PIXEL_DATA);
+	}
+	
+		while(1)
     {
         //osMutexWait(running_mutexID, osWaitForever);
         osSemaphoreWait(running_semaphoreID, osWaitForever);
         #ifdef __use_LCD
-            osSignalWait(0x02, osWaitForever);
+            
             int input = get_button();
             char text[10];
             sprintf(text,"%x", input);
@@ -154,10 +157,17 @@ void inputController(void const *argument){
                 switch(input)
                 {
                     case UP:
+												if(current_item == 0){
+													current_item = 4;
+													DELAY;
+												}else{
                         current_item = (current_item - 1) % MENU_SIZE;
+													DELAY;
+												}
                         break;
                     case DOWN:
                         current_item = (current_item + 1) % MENU_SIZE;
+												DELAY;
                         break;
                     case SELECT:
                         switch(current_item)
@@ -166,6 +176,8 @@ void inputController(void const *argument){
                                 // run option 1
                                 //osMutexRelease(running_mutexID);
                                 osSemaphoreRelease(running_semaphoreID);
+																osSignalSet(photoGalleryControllerID,0x01);
+																osSignalWait(0x01, osWaitForever);
                                 break;
                             case OPTION_2:
                                 // run option 2
@@ -214,7 +226,7 @@ void inputController(void const *argument){
                             // do nothing
                             break;
                 }
-        
+
             }
             //not currently used:
             InputBuffer[InputBufferIndex] = input;
@@ -223,6 +235,7 @@ void inputController(void const *argument){
         #ifndef __use_LCD
         //osMutexRelease(running_mutexID);
         #endif
+													osSemaphoreRelease(running_semaphoreID);
     }
 }
 
@@ -230,7 +243,10 @@ void inputController(void const *argument){
 void photoGalleryController(void const *argument){
     while(1)
     {
-        osSemaphoreWait(running_semaphoreID, osWaitForever);
+				osSignalWait(0x01, osWaitForever);
+				
+			osSemaphoreWait(running_semaphoreID, osWaitForever);
+			
         #ifdef __use_LCD
             
             // GLCD_Bitmap arguments description:
@@ -239,12 +255,13 @@ void photoGalleryController(void const *argument){
             // w: width of image
             // h: height of image
             // bitmap: pointer to image data
-            GLCD_Bitmap(0, 0, 320, 240, (unsigned char *) photoGallery);
+            GLCD_Bitmap(0, 0, 240, 240, GIMP_IMAGE_PIXEL_DATA);
             while(get_button() != SELECT)
             {
                 // wait for select button to be pressed to return to main menu
             }
-            osSemaphoreRelease(running_semaphoreID);
+						osSignalSet(inputControllerID, 0x01);
+            //osSemaphoreRelease(running_semaphoreID);
             
         #endif
     }
