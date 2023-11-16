@@ -3,8 +3,8 @@
 #define GIMP_IMAGE_WIDTH (240)
 #define GIMP_IMAGE_HEIGHT (240)
 #define GIMP_IMAGE_BYTES_PER_PIXEL (2) /* 2:RGB16, 3:RGB, 4:RGBA */
-#define GIMP_IMAGE_PIXEL_DATA ((guint8*) GIMP_IMAGE_pixel_data)
-static const guint8 GIMP_IMAGE_pixel_data[240 * 240 * 2 + 1] =
+#define GIMP_IMAGE_PIXEL_DATA ((unsigned char*) GIMP_IMAGE_pixel_data)
+static const unsigned char GIMP_IMAGE_pixel_data[240 * 240 * 2 + 1] =
 ("<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347"
  "<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347"
  "<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347<\347"
