@@ -27,61 +27,20 @@
 
 
 
-// #########################################################
-// ####       PROGRAM START                             ####     
-// #########################################################
-
 //define main menu options
 typedef enum{
-        OPTION_1,
+        PHOTO_GALLERY,
         OPTION_2,
         OPTION_3,
         OPTION_4,
         MENU_SIZE
 } MENU_Item;
 
-MENU_Item current_item = OPTION_1;
-#define MAIN_MENU(OPTION) do { \
-    GLCD_SetBackColor(White); \
-    GLCD_SetTextColor(Black); \
-    GLCD_DisplayString(0, 0, __FI, "  media centre "); \
-    GLCD_DisplayString(1, 0, __FI, "1. OPTION 1"); \
-    GLCD_DisplayString(2, 0, __FI, "2. OPTION 2"); \
-    GLCD_DisplayString(3, 0, __FI, "3. OPTION 3"); \
-    GLCD_DisplayString(4, 0, __FI, "4. OPTION 4"); \
-    switch(OPTION){ \
-        case 1: \
-            GLCD_SetBackColor(Blue); \
-            GLCD_SetTextColor(White); \
-            GLCD_DisplayString(1, 0, __FI, "1. OPTION 1"); \
-            GLCD_SetBackColor(White); \
-            GLCD_SetTextColor(Black); \
-            break; \
-        case 2: \
-            GLCD_SetBackColor(Blue); \
-            GLCD_SetTextColor(White); \
-            GLCD_DisplayString(2, 0, __FI, "2. OPTION 2"); \
-            GLCD_SetBackColor(White); \
-            GLCD_SetTextColor(Black); \
-            break; \
-        case 3: \
-            GLCD_SetBackColor(Blue); \
-            GLCD_SetTextColor(White); \
-            GLCD_DisplayString(3, 0, __FI, "3. OPTION 3"); \
-            GLCD_SetBackColor(White); \
-            GLCD_SetTextColor(Black); \
-            break; \
-        case 4: \
-            GLCD_SetBackColor(Blue); \
-            GLCD_SetTextColor(White); \
-            GLCD_DisplayString(4, 0, __FI, "4. OPTION 4"); \
-            GLCD_SetBackColor(White); \
-            GLCD_SetTextColor(Black); \
-            break; \
-        default: \
-            break; \
-    } \
-} while (0)
+// #########################################################
+// ####       PROGRAM START                             ####     
+// #########################################################
+
+
 
 
 // prototype functions
@@ -92,32 +51,54 @@ void menuController();
 osMutexDef(lcd_mutex);
 osMutexId(lcd_mutexID);
 
+// #########################################################
+// #                    thread handlers                    #
+// #########################################################
 osThreadId inputControllerID;
+osThreadId photoGalleryControllerID;
 osThreadDef(inputController,osPriorityNormal, 1, 0);
+osThreadDef(photoGalleryController,osPriorityNormal, 1, 0);
+
+
+
+
+
+
+
+// #########################################################
+// #########################################################
+// ####               main function                      ###
+// #########################################################
+// #########################################################
 
 int main (void) {
-    // lcd mutex not in use*
+    // #########################################################
+    // #                    mutex creation                     #
+    // #########################################################
 	lcd_mutexID = osMutexCreate(osMutex(lcd_mutex));
-	
-	
-	    
+
+
+    // #########################################################
+    // #                    initialization                     #
+    // #########################################################
     #ifdef __use_LCD
+        MENU_Item current_item = PHOTO_GALLERY;
         KBD_Init();			/* KBD initialization */
-        GLCD_Init();                               /* Initialize graphical LCD (if enabled */
-        GLCD_Clear(White);                         /* Clear graphical LCD display   */
-        GLCD_SetBackColor(Blue);
-        GLCD_SetTextColor(Yellow);
-        GLCD_DisplayString(0, 0, __FI, "  media centre ");
-        GLCD_SetTextColor(White);
-        MAIN_MENU(1); //instantiate main menu
+        GLCD_Init();        /* Initialize graphical LCD (if enabled */
+        MAIN_MENU(1);       //instantiate main menu
     #endif
-		
-		
-		inputControllerID = osThreadCreate(osThread(inputController),NULL);
-		osKernelInitialize();
-		osKernelStart();
-	while(1){
-      
+    
+    // #########################################################
+    // #                    thread creation                    #
+    // #########################################################
+    inputControllerID = osThreadCreate(osThread(inputController),NULL);
+    photoGalleryControllerID = osThreadCreate(osThread(photoGalleryController),NULL);
+    osKernelInitialize();
+    osKernelStart();
+	
+    
+    while(1){
+    // do nothing  
     }
 		
 }
@@ -140,6 +121,7 @@ void inputController(void const *argument){
     while(1)
     {
         #ifdef __use_LCD
+            osSignalWait(0x02, osWaitForever);
             int input = get_button();
             char text[10];
             sprintf(text,"%x", input);
@@ -159,21 +141,22 @@ void inputController(void const *argument){
                     case SELECT:
                         switch(current_item)
                         {
-                            case OPTION_1:
+                            case PHOTO_GALLERY:
                                 // run option 1
-                                MAIN_MENU(1);				
+                                osSignalWait(0x01, osWaitForever);
+                                osThreadYield();
                                 break;
                             case OPTION_2:
                                 // run option 2
-                                MAIN_MENU(2);							
+                                
                                 break;
                             case OPTION_3:
                                 // run option 3
-                                MAIN_MENU(3);
+                                
                                 break;
                             case OPTION_4:
                                 // run option 4
-                                MAIN_MENU(4);
+                                
                                 break;
                             default:
                                 // do nothing
@@ -186,7 +169,7 @@ void inputController(void const *argument){
                 }   
                 switch(current_item)
                 {
-                    case OPTION_1:
+                    case PHOTO_GALLERY:
                             // run option 1
                             MAIN_MENU(1);
                             
@@ -215,6 +198,29 @@ void inputController(void const *argument){
             //not currently used:
             InputBuffer[InputBufferIndex] = input;
             InputBufferIndex = (InputBufferIndex + 1) % 100;
+        #endif
+    }
+}
+
+// photo gallery controller
+void photoGalleryController(void const *argument){
+    while(1)
+    {
+    
+        #ifdef __use_LCD
+            osSignalWait(0x01, osWaitForever);
+            // GLCD_Bitmap arguments description:
+            // x: x coordinate of top left corner of image
+            // y: y coordinate of top left corner of image
+            // w: width of image
+            // h: height of image
+            // bitmap: pointer to image data
+            GLCD_Bitmap(0, 0, 320, 240, (unsigned char *) photoGallery);
+            while(get_button() != SELECT)
+            {
+                // wait for select button to be pressed to return to main menu
+            }
+            osSignalSet(inputControllerID, 0x02);
         #endif
     }
 }
