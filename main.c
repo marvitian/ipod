@@ -10,8 +10,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "GLCD.h"
-#define osObjectsPublic                     // define objects in main module
-#include "osObjects.h"                      // RTOS object definitions
+//#define osObjectsPublic                     // define objects in main module
+//#include "osObjects.h"                      // RTOS object definitions
 #ifdef led
 #include "LED.h"
 #endif
@@ -40,7 +40,7 @@
 
 		MENU_Item current_item = OPTION_1;
 // prototype functions
-void inputController();
+void inputController(void const *argument);
 void menuController();
 #define MAIN_MENU(OPTION) do { \
     GLCD_SetBackColor(White); \
@@ -102,6 +102,8 @@ osMutexId(lcd_mutexID);
 
 */
 
+osThreadId inputControllerID;
+osThreadDef(inputController,osPriorityNormal, 1, 0);
 /*
  * main: initialize and start the system
  */
@@ -129,12 +131,13 @@ int main (void) {
         MAIN_MENU(1); //instantiate main menu
     
     #endif
+		
+		
+		inputControllerID = osThreadCreate(osThread(inputController),NULL);
 		osKernelInitialize();
 		osKernelStart();
 	while(1){
-        if(in = get_button() != REST){
-            inputController(in);
-        }
+      
     }
 		
 }
@@ -146,16 +149,21 @@ int main (void) {
     // ##################
     int InputBuffer[100];
     int InputBufferIndex = 0;
-//threads
-    // input thread
-    void inputController(){
-        int input = get_button();
-			char text[10];
-			sprintf(text,"%x", input);
-			//printf("%x, %d", input, input);
-			GLCD_DisplayString(8, 0, __FI, (unsigned char *) text);
 
-			if(input != REST){
+
+//threads
+
+
+// input thread
+    void inputController(void const *argument){
+			while(1){
+        int input = get_button();
+				char text[10];
+				sprintf(text,"%x", input);
+				//printf("%x, %d", input, input);
+				GLCD_DisplayString(8, 0, __FI, (unsigned char *) text);
+
+				if(input != REST){
              // display menu
             // check input
             // if input is select, then run the current menu item
@@ -176,11 +184,13 @@ int main (void) {
                         case OPTION_1:
                             // run option 1
                             MAIN_MENU(1);
+														osDelay(10);
                             break;
                         case OPTION_2:
                             // run option 2
                             MAIN_MENU(2);
-                            break;
+														osDelay(10);
+														break;
                         case OPTION_3:
                             // run option 3
                             MAIN_MENU(3);
@@ -202,22 +212,22 @@ int main (void) {
 								case OPTION_1:
 										// run option 1
 										MAIN_MENU(1);
-										osDelay(5);
+										
 										break;
 								case OPTION_2:
 										// run option 2
 										MAIN_MENU(2);
-										osDelay(5);
+										
 										break;
 								case OPTION_3:
 										// run option 3
 										MAIN_MENU(3);
-										osDelay(5);
+										
 										break;
 								case OPTION_4:
 										// run option 4
 										MAIN_MENU(4);
-										osDelay(5);
+										
 										break;
 								default:
 										// do nothing
@@ -227,6 +237,7 @@ int main (void) {
         }
         InputBuffer[InputBufferIndex] = input;
         InputBufferIndex = (InputBufferIndex + 1) % 100;
+			}
     }
 
     // control state thread
