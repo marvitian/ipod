@@ -22,16 +22,27 @@
 #define __FI 1
 
 // define joystick input up=0008 down=0020 left=0040 right=0010 select=0001
-#define UP 0x0008
-#define DOWN 0x0020
-#define LEFT 0x0040
-#define RIGHT 0x0010
-#define SELECT 0x0001
-#define REST 0x0000
+#define UP 0x08
+#define DOWN 0x20
+#define LEFT 0x40
+#define RIGHT 0x10
+#define SELECT 0x01
+#define REST 0x00
 
+    //define main menu options
+    typedef enum{
+        OPTION_1,
+        OPTION_2,
+        OPTION_3,
+        OPTION_4,
+        MENU_SIZE
+    } MENU_Item;
 
-#define MAIN_MENU(OPTION) DO { \
-    #ifdef __use_LCD \
+		MENU_Item current_item = OPTION_1;
+// prototype functions
+void inputController();
+void menuController();
+#define MAIN_MENU(OPTION) do { \
     GLCD_SetBackColor(White); \
     GLCD_SetTextColor(Black); \
     GLCD_DisplayString(0, 0, __FI, "  media centre "); \
@@ -70,7 +81,6 @@
             break; \
         default: \
             break; \
-    #endif \
     } \
 } while (0)
 
@@ -96,6 +106,7 @@ osMutexId(lcd_mutexID);
  * main: initialize and start the system
  */
 int main (void) {
+	
 	int in;
 	  KBD_Init();			/* KBD initialization */
 	// prepare lcd mutex
@@ -118,9 +129,11 @@ int main (void) {
         MAIN_MENU(1); //instantiate main menu
     
     #endif
+		osKernelInitialize();
+		osKernelStart();
 	while(1){
         if(in = get_button() != REST){
-            menuController(in);
+            inputController(in);
         }
     }
 		
@@ -137,7 +150,12 @@ int main (void) {
     // input thread
     void inputController(){
         int input = get_button();
-        if(input != REST){
+			char text[10];
+			sprintf(text,"%x", input);
+			//printf("%x, %d", input, input);
+			GLCD_DisplayString(8, 0, __FI, (unsigned char *) text);
+
+			if(input != REST){
              // display menu
             // check input
             // if input is select, then run the current menu item
@@ -148,26 +166,26 @@ int main (void) {
             
             switch(input){
                 case UP:
-                    current_item = (current_item + 1) % MENU_SIZE;
+                    current_item = (current_item - 1) % MENU_SIZE;
                     break;
                 case DOWN:
-                    current_item = (current_item - 1) % MENU_SIZE;
+                    current_item = (current_item + 1) % MENU_SIZE;
                     break;
                 case SELECT:
                     switch(current_item){
-                        case OPTION 1:
+                        case OPTION_1:
                             // run option 1
                             MAIN_MENU(1);
                             break;
-                        case OPTION 2:
+                        case OPTION_2:
                             // run option 2
                             MAIN_MENU(2);
                             break;
-                        case OPTION 3:
+                        case OPTION_3:
                             // run option 3
                             MAIN_MENU(3);
                             break;
-                        case OPTION 4:
+                        case OPTION_4:
                             // run option 4
                             MAIN_MENU(4);
                             break;
@@ -180,6 +198,31 @@ int main (void) {
                     // do nothing
                     break;
             }
+						switch(current_item){
+								case OPTION_1:
+										// run option 1
+										MAIN_MENU(1);
+										osDelay(5);
+										break;
+								case OPTION_2:
+										// run option 2
+										MAIN_MENU(2);
+										osDelay(5);
+										break;
+								case OPTION_3:
+										// run option 3
+										MAIN_MENU(3);
+										osDelay(5);
+										break;
+								case OPTION_4:
+										// run option 4
+										MAIN_MENU(4);
+										osDelay(5);
+										break;
+								default:
+										// do nothing
+										break;
+						}
         
         }
         InputBuffer[InputBufferIndex] = input;
@@ -195,21 +238,15 @@ int main (void) {
 
 
 
-//functions 
-    //define main menu options
-    typedef enum{
-        OPTION 1,
-        OPTION 2,
-        OPTION 3,
-        OPTION 4,
-        MENU_SIZE
-    } MENU_Item;
 
-    
+
+//functions 
+
+    /*
 
     // might have to change the type of input
     int menuController(int input){
-        MENU_Item current_item = OPTION 1;
+        MENU_Item current_item = OPTION_1;
         
             // display menu
             // check input
@@ -218,7 +255,7 @@ int main (void) {
             // if input is down, then move down the menu
             // if input is left, then move left the menu
             // if input is right, then move right the menu
-            int input = input;
+           // int input = input;
             switch(input){
                 case UP:
                     current_item = (current_item + 1) % MENU_SIZE;
@@ -228,16 +265,16 @@ int main (void) {
                     break;
                 case SELECT:
                     switch(current_item){
-                        case OPTION 1:
+                        case OPTION_1:
                             // run option 1
                             break;
-                        case OPTION 2:
+                        case OPTION_2:
                             // run option 2
                             break;
-                        case OPTION 3:
+                        case OPTION_3:
                             // run option 3
                             break;
-                        case OPTION 4:
+                        case OPTION_4:
                             // run option 4
                             break;
                         default:
@@ -252,6 +289,7 @@ int main (void) {
         
     }
     
+		*/
 
 	// testing region
     /*
