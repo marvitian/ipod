@@ -46,7 +46,7 @@ MENU_Item current_item = PHOTO_GALLERY;
 
 
 // prototype functions
-void inputController(void const *argument);
+void mainMenuController(void const *argument);
 void photoGalleryController(void const *argument);
 void menuController();
 
@@ -63,9 +63,9 @@ void menuController();
 // #########################################################
 // #                    thread handlers                    #
 // #########################################################
-osThreadId inputControllerID;
+osThreadId mainMenuControllerID;
 osThreadId photoGalleryControllerID;
-osThreadDef(inputController,osPriorityNormal, 1, 0);
+osThreadDef(mainMenuController,osPriorityNormal, 1, 0);
 osThreadDef(photoGalleryController,osPriorityNormal, 1, 0);
 
 
@@ -76,7 +76,9 @@ osThreadDef(photoGalleryController,osPriorityNormal, 1, 0);
 
 // #########################################################
 // #########################################################
+// ####                                                  ###
 // ####               main function                      ###
+// ####                                                  ###
 // #########################################################
 // #########################################################
 
@@ -112,72 +114,67 @@ int main (void) {
     // #########################################################
     // #                    thread creation                    #
     // #########################################################
-    inputControllerID = osThreadCreate(osThread(inputController),NULL);
+    mainMenuControllerID = osThreadCreate(osThread(mainMenuController),NULL);
     photoGalleryControllerID = osThreadCreate(osThread(photoGalleryController),NULL);
     osKernelInitialize();
     osKernelStart();
 	
+}
     
 	
-}
 
 
 
-    // ##################
-    // testing region 
-    // ##################
+
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+// #                                                       &
+// #                    Threads                            &
+// #                                                       &
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+// &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
 //not currently used: 
 int InputBuffer[100];
 int InputBufferIndex = 0;
 
-
-
-
 // input thread
-void inputController(void const *argument){
-	while(0){
-		GLCD_Bitmap(0, 0, 240, 240, GIMP_IMAGE_PIXEL_DATA);
-	}
-	
-		while(1)
+void mainMenuController(void const *argument){
+    while(1)
     {
         //osMutexWait(running_mutexID, osWaitForever);
         osSemaphoreWait(running_semaphoreID, osWaitForever);
         #ifdef __use_LCD
-            
             int input = get_button();
-            char text[10];
-            sprintf(text,"%x", input);
-            //printf("%x, %d", input, input);
-            GLCD_DisplayString(8, 0, __FI, (unsigned char *) text);
-
+            
             if(input != REST)
             {
                 switch(input)
                 {
                     case UP:
-												if(current_item == 0){
-													current_item = 4;
-													DELAY;
-												}else{
-                        current_item = (current_item - 1) % MENU_SIZE;
-													DELAY;
-												}
+                        if(current_item == 0){
+                            current_item = 4;
+                            DELAY;
+                        }else{
+                            current_item = (current_item - 1) % MENU_SIZE;
+                            DELAY;      
+                        }
                         break;
                     case DOWN:
                         current_item = (current_item + 1) % MENU_SIZE;
-												DELAY;
+                        DELAY;
                         break;
                     case SELECT:
                         switch(current_item)
                         {
                             case PHOTO_GALLERY:
                                 // run option 1
-                                //osMutexRelease(running_mutexID);
+
+                                // release running semaphore -> signal to option -> wait for return to main menu,
                                 osSemaphoreRelease(running_semaphoreID);
-																osSignalSet(photoGalleryControllerID,0x01);
-																osSignalWait(0x01, osWaitForever);
+                                osSignalSet(photoGalleryControllerID,0x01);
+                                osSignalWait(0x01, osWaitForever);
+
                                 break;
                             case OPTION_2:
                                 // run option 2
@@ -200,6 +197,9 @@ void inputController(void const *argument){
                     // do nothing
                         break;
                 }   
+
+
+                // display handler for main menu
                 switch(current_item)
                 {
                     case PHOTO_GALLERY:
@@ -232,10 +232,7 @@ void inputController(void const *argument){
             InputBuffer[InputBufferIndex] = input;
             InputBufferIndex = (InputBufferIndex + 1) % 100;
         #endif
-        #ifndef __use_LCD
-        //osMutexRelease(running_mutexID);
-        #endif
-													osSemaphoreRelease(running_semaphoreID);
+        osSemaphoreRelease(running_semaphoreID);
     }
 }
 
@@ -243,11 +240,32 @@ void inputController(void const *argument){
 void photoGalleryController(void const *argument){
     while(1)
     {
-				osSignalWait(0x01, osWaitForever);
+        osSignalWait(0x01, osWaitForever);
+        osSemaphoreWait(running_semaphoreID, osWaitForever);
 				
-			osSemaphoreWait(running_semaphoreID, osWaitForever);
-			
         #ifdef __use_LCD
+			
+            // input handler for photo gallery
+            int input = get_button();
+            if(input != REST)
+            {
+                switch(input)
+                {
+                    case UP:
+                        // do nothing
+                        break;
+                    case DOWN:
+                        // do nothing
+                        break;
+                    case SELECT:
+                        // do nothing
+                        break;
+                    default:
+                    // do nothing
+                        break;
+                }   
+            }
+
             
             // GLCD_Bitmap arguments description:
             // x: x coordinate of top left corner of image
@@ -259,9 +277,11 @@ void photoGalleryController(void const *argument){
             while(get_button() != SELECT)
             {
                 // wait for select button to be pressed to return to main menu
+                // hopefully it maintains it state ? 
+            
             }
-						osSignalSet(inputControllerID, 0x01);
-            //osSemaphoreRelease(running_semaphoreID);
+            osSignalSet(mainMenuControllerID, 0x01);
+            osSemaphoreRelease(running_semaphoreID);
             
         #endif
     }
